@@ -5,16 +5,18 @@ services:
     container_name: fastapi_app
     env_file:
       - .env
-    ports:
-      - "8000:8000"
     volumes:
       - ./haystack_api:/app
     command: uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - npm-network
+      - default
     depends_on:
       mariadb:
         condition: service_started
       elasticsearch:
         condition: service_healthy
+    restart: always
 
   mariadb:
     image: mariadb:10.3.39
@@ -35,12 +37,17 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false  # 暫時關閉安全性
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}     # 預設密碼（未啟用不會生效)
-    volumes:
-      - ./volumes/data/elasticsearch:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
+        #    volumes:
+        #      - ./volumes/data/elasticsearch:/usr/share/elasticsearch/data
+    networks:
+      - default
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+networks:
+  npm-network:
+    external: true
+  default:
