@@ -33,13 +33,17 @@ def optimize_content(content):
 # 篩選搜尋結果
 def filter_results(query, results):
     # 整理結果內容
-    items_text = "\n".join([f"- id:{item['meta'].get('id')} = {item['meta'].get('name')} ({item['content']})" for item in results])
-    
+    items_text = "\n".join([
+        f"- id:{item['meta'].get('id')} = {item['meta'].get('name')} ({item['content']})"
+        for item in results
+    ])
+
     # 建立 Prompt
     prompt = f"""
-        根據以下使用者搜尋查詢: "{query}"，請從下面的商品清單中，挑選出真正與查詢高度相關的項目，並列出它們的名稱：
-            {items_text}
-            只保留最相關的項目，並回傳它們的id（只需列出id即可，不需要描述）。
+        根據以下使用者搜尋查詢: "{query}"，請從下面的商品清單中，挑選出真正與查詢高度相關的項目，並回傳它們的 id：
+        {items_text}
+
+        請只回傳這些項目的 id（格式為 id:42），不需要其他描述。
         """
 
     # 發送請求給 OpenAI
@@ -48,13 +52,16 @@ def filter_results(query, results):
         messages=[{"role": "user", "content": prompt}],
         max_tokens=200
     )
-    
-    # 擷取回應結果
-    filtered_ids = response.choices[0].message.content.strip().split("\n")
-    # filtered_ids = [name.strip("- ").strip() for name in filtered_ids if name.strip()]
-    filtered_ids = [int(id) for id in filtered_ids if id.strip()]
-    
-    # 根據回傳名稱過濾結果
+
+    # 解析回傳內容
+    raw_text = response.choices[0].message.content.strip()
+    print(f"[DEBUG] GPT 回傳內容:\n{raw_text}")
+
+    # 從自然語言中擷取所有 id:xxx 的數字
+    filtered_ids = [int(m) for m in re.findall(r'id\s*[:：]?\s*(\d+)', raw_text)]
+    print(f"[DEBUG] parsed filtered_ids: {filtered_ids}")
+
+    # 根據 id 過濾原始結果
     filtered_results = [item for item in results if item["meta"].get("id") in filtered_ids]
 
     return filtered_results

@@ -23,7 +23,7 @@ class HaystackRepository:
         )
     # 寫入資料 (create / update)
     def write(self, docs: list):
-        self.document_store.write_documents(docs, policy="overwrite")
+        self.document_store.write_documents(docs)
         self.document_store.update_embeddings(retriever=self.retriever)
 
         return {"status": "success", "count": len(docs), "index": self.index_name}
